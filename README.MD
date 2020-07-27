@@ -1,35 +1,34 @@
 ### Spiegazione
-Il progetto è un irrigatore automatico per piante con monitoraggio su sito internet , l'attuatore (la pompa dell'acqua) agisce in base al sensore (sensore umidità).
+>Il progetto è un irrigatore automatico per piante con monitoraggio su sito internet , l'attuatore (la pompa dell'acqua) agisce in base al sensore (sensore umidità).
 Il microcontroller controlla l'umidità del terreno ogni x ore , manda il dato a un database e controlla se è necessario far partire la pompa dell'acqua.
 
 ### Componenti
-* Flying fish MH Sensor
-* Soil Mosture Sensor
-* Jumper wire
-* Relay JQC3F (HW-482)
-* Pompa dell'acqua JT80SL
+>* Flying fish MH Sensor
+>* Soil Mosture Sensor
+>* Jumper wire
+>* Relay JQC3F (HW-482)
+>* Pompa dell'acqua JT80SL
 
 ### Installazione
 
-* installare l'ultima versione di arduino IDE dal sito ufficiale di arduinoESP
-* dall'IDE di arduino aprire "preferences"
-* aggiungere "https://arduino.esp8266.com/stable/package_esp8266com_index.json" nell' "Additional Board Manager URL"
-* aprire "Tools" > "Board" > "Board Manager" e installare "ESP8266 community"
-* aprire "Tools" > "Board" > "ESP8266 boards" e selezionare "NodeMCU 1.0"
-* Collegare ESP8266 al computer
-> Per controllare che tutto funzioni correttamente andare su "File" > "Example" > "ESP8266" > "Blink" e premere sul tasto upload.
+>* installare l'ultima versione di arduino IDE dal sito ufficiale di arduinoESP
+>* dall'IDE di arduino aprire "preferences"
+>* aggiungere "https://arduino.esp8266.com/stable/package_esp8266com_index.json" nell' "Additional Board Manager URL"
+>* aprire "Tools" > "Board" > "Board Manager" e installare "ESP8266 community"
+>* aprire "Tools" > "Board" > "ESP8266 boards" e selezionare "NodeMCU 1.0"
+>* Collegare ESP8266 al computer
 
 ## Parte 1 : Prendere l'umidità
 #### Componenti
-* Flying fish MH Sensor
+>* Flying fish MH Sensor
 <img src="/img/FFMS.png" alt="drawing" width="100" height = 100/>
-* Soil Mosture Sensor
+>* Soil Mosture Sensor
 <img src="/img/SMS.png" alt="drawing" width="100" height ="100"/>
-* Jumper wire
+>* Jumper wire
 <img src="/img/JW.png" alt="drawing" width="100" height ="100"/>
 
 #### Schema fritzing
-<img src="img/FRITZING1.png" alt="drawing"/>
+><img src="img/FRITZING1.png" alt="drawing"/>
 
 #### Codice
 **leafScreen.ino**
@@ -44,13 +43,11 @@ Il microcontroller controlla l'umidità del terreno ogni x ore , manda il dato a
 
     void loop() {
         humidityValue = analogRead(analogInPin);
-        Serial.println("humidity sensor = ");
-        Serial.print(AsensorValue);
         delay(500);
     }
 
 #### Note
-
+> In questa parte settiamo il pin analogico 0 dell ESP8266 come input, inizializziamo la comunicazione seriale e prendiamo il dato ogni 0.5 secondi
 
 ## Parte 2 : Innaffiare il terreno
 Spiegazione fase 2
