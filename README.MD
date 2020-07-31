@@ -1,6 +1,6 @@
 ### Spiegazione
 >Il progetto è un irrigatore automatico per piante con monitoraggio su sito internet , l'attuatore (la pompa dell'acqua) agisce in base al sensore (sensore umidità).
-Il microcontroller controlla l'umidità del terreno ogni x ore , manda il dato a un database e controlla se è necessario far partire la pompa dell'acqua.
+Il microcontroller controlla l'umidità del terreno ogni X ore , come dato usa una media di Y misurazioni fatte nel giro di poco tempo , manda il dato a un database e controlla se è necessario far partire la pompa dell'acqua , nel caso in cui non è necessario si mette a dormire e torna a fare la richiesta dopo X ore , invece nel caso in cui sia necessario continua a controllare l'umidità del terreno a intervalli di pochi secondi mentre la pompa è in funzione , quando l'umidità raggiunge la giusta soglia si mette a dormire fino alla prossima richiesta.
 
 ### Componenti
 >* Flying fish MH Sensor
@@ -21,11 +21,11 @@ Il microcontroller controlla l'umidità del terreno ogni x ore , manda il dato a
 ## Parte 1 : Prendere l'umidità
 #### Componenti
 >* Flying fish MH Sensor
-<img src="/img/FFMS.png" alt="drawing" width="100" height = 100/>
+<img src="img/FFMS.png" alt="drawing" width="100" height = 100/>
 >* Soil Mosture Sensor
-<img src="/img/SMS.png" alt="drawing" width="100" height ="100"/>
+<img src="img/SMS.png" alt="drawing" width="100" height ="100"/>
 >* Jumper wire
-<img src="/img/JW.png" alt="drawing" width="100" height ="100"/>
+<img src="img/JW.png" alt="drawing" width="100" height ="100"/>
 
 #### Schema fritzing
 ><img src="img/FRITZING1.png" alt="drawing"/>
@@ -47,21 +47,21 @@ Il microcontroller controlla l'umidità del terreno ogni x ore , manda il dato a
     }
 
 #### Note
-> In questa parte settiamo il pin analogico 0 dell ESP8266 come input, inizializziamo la comunicazione seriale e prendiamo il dato ogni 0.5 secondi
+> In questa parte settiamo il pin analogico 0 dell ESP8266 come input, inizializziamo la comunicazione seriale e prendiamo il dato ogni 0.5 secondi , questo modo di prendere il dato è molto grezzo e puo portare a problemi dati da oscillazioni.
+> Inoltre colleghiamo il pin digitale 0 al reset per resettare l'ESP durante il deepsleep , useremo questa funzione piu avanti.
 
 ## Parte 2 : Innaffiare il terreno
-Spiegazione fase 2
 #### Componenti
 * Relay JQC3F (HW-482)
-<img src="/img/JQC3F.png" alt="drawing" width="100" height = 100/>
+<img src="img/JQC3F.png" alt="drawing" width="100" height = 100/>
 * Pompa dell'acqua JT80SL
-<img src="/img/JT80SL.jpg" alt="drawing" width="100" height = 100/>
+<img src="img/JT80SL.jpg" alt="drawing" width="100" height = 100/>
 
 #### Codice
 **leafScreen.ino**
 
     const int humidityInputPin = A0;
-    const int releeController = D0;
+    const int releeController = D1;
     int humidityValue = 0;
 
     void setup() {
@@ -73,18 +73,26 @@ Spiegazione fase 2
     void loop() {    
         humidityValue = analogRead(humidityInputPin);
         if(humidityValue < 800){
-            digitalWrite(releeController,LOW);
-        }else{
-            digitalWrite(releeController,HIGH);
-        }
-        delay(2000);
+                    digitalWrite(releeController,LOW);
+                }else{
+                    digitalWrite(releeController,HIGH);
+                    while(humidityValue > wetSoil - 50){
+                        humidityValue = analogRead(humidityInputPin);
+                        delay(1000);
+                    }
+                    // Turn the pump off because the soil is wet enough
+                    digitalWrite(releeController,LOW);
+                }
+        delay(10000);
     }
 
 #### Schema fritzing
-TODO : modificare schema fritzing per farlo funzionare a batteria
 <img src="img/FRITZING2.png" alt="drawing"/>
 
-## Parte 3 : Wifi e SQL
+#### Note
+>In questa parte del progetto usiamo il relay per azionare la pompa dell'acqua , attaccato al controllo del relay abbiamo il pin digitale D1 che da un segnale basso se il terreno è gia umido (ovvero humidityValue è minore di 800) e da un segnale alto se il terreno è asciutto (ovvero humidityValue è maggiore di 800), in questo caso entra in un loop fino a quando il terreno è abbastanza umido (ovvero il valore è sopra 850) , dopodiche spegne la pompa e aspetta 10 secondi prima di ricominciare.
+
+## Parte 3 : Wifi , SQL , DeepSleep e refactoring.
 #### Codice
 **leafScreen.ino**
 
@@ -93,12 +101,12 @@ TODO : modificare schema fritzing per farlo funzionare a batteria
 
     #define HOST "www.website.com"
     #define WIFI_SSID "SSID"                                      
-    #define WIFI_PASSWORD "PASSWORD"    
+    #define WIFI_PASSWORD "PASS"    
 
     const int humidityInputPin = A0;
-    const int releeController = D0;
-    const int wetSoil = 500;
-    const int waitTime = 60;
+    const int releeController = D1;
+    const int wetSoil = 800;
+    const int waitTime = 3600;
 
     int humidityValue = 0;
     String sendval, postData;
@@ -108,26 +116,40 @@ TODO : modificare schema fritzing per farlo funzionare a batteria
         pinMode(humidityInputPin, INPUT);
         pinMode(releeController, OUTPUT);
         Serial.begin(9600);
-
+        delay(2000);
+        
         // Connect to WiFi
         WiFi.mode(WIFI_STA);           
         WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
         while (WiFi.status() != WL_CONNECTED) 
         { 
-            Serial.print(".");
             delay(500); 
         }
     }
 
     void loop() {
-        // Prepare data
+        //Init variables
         HTTPClient http;
-        humidityValue = analogRead(humidityInputPin);
+        humidityValue = 0;
+        int tempHumidity[6];
+  
+        // Prepare data
+        for (int i = 0; i<5;i++){
+            tempHumidity[i] = analogRead(humidityInputPin);
+            Serial.print("[1] Collected value : ");
+            Serial.println(tempHumidity[i]);
+            humidityValue += tempHumidity[i]; 
+            delay(400);
+        }
+        
+        humidityValue /= 5;
+        Serial.print("[2] Final value = ");
+        Serial.println(humidityValue);
         sendval = String(humidityValue);
         postData = "sendval=" + sendval;
 
         // Start HTTP session and send data
-        http.begin("http://website.com/dbwrite.php");
+        http.begin(HOST);
         http.addHeader("Content-Type", "application/x-www-form-urlencoded");
         int httpCode = http.POST(postData);
 
@@ -136,7 +158,7 @@ TODO : modificare schema fritzing per farlo funzionare a batteria
             http.end(); 
             return; 
         }
-        
+
         if(humidityValue < wetSoil){
             // Turn off the pump is soil is wet
             digitalWrite(releeController,LOW);
@@ -150,9 +172,11 @@ TODO : modificare schema fritzing per farlo funzionare a batteria
             }
             // Turn the pump off because the soil is wet enough
             digitalWrite(releeController,LOW);
+            Serial.println("[4] Pump off");
         }
         
-        delay(waitTime * 1000);
+        //Go deepsleep for 1 hour(thank to D0 connected to RST)
+        ESP.deepSleep(waitTime * 1000000);
     }
 
 **dbRead.php**
@@ -225,3 +249,8 @@ TODO : modificare schema fritzing per farlo funzionare a batteria
     $conn->close();
 
     ?>
+
+#### Note
+> In questa parte del progetto aggiungiamo le funzionalità di rete , il microcontroller si connette al wifi e manda il dato attraverso un http request , questa viene poi controllata da un server e inserita dentro un database SQL.
+> Usiamo deepsleep al posto di delay alla fine , in questa maniera conserviamo batteria spegnendo quasi completamente l'ESP8266 e aspettando un ora prima di riaccenderlo.
+> Al posto di prendere 1 singolo valore di umidità prendiamo 5 valori e facciamo la media , questo per evitare possibili oscillazioni.
