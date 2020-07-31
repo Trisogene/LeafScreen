@@ -3,11 +3,11 @@
 Il microcontroller controlla l'umidità del terreno ogni X ore , come dato usa una media di Y misurazioni fatte nel giro di poco tempo , manda il dato a un database e controlla se è necessario far partire la pompa dell'acqua , nel caso in cui non è necessario si mette a dormire e torna a fare la richiesta dopo X ore , invece nel caso in cui sia necessario continua a controllare l'umidità del terreno a intervalli di pochi secondi mentre la pompa è in funzione , quando l'umidità raggiunge la giusta soglia si mette a dormire fino alla prossima richiesta.
 
 ### Componenti
->* Flying fish MH Sensor
->* Soil Mosture Sensor
->* Jumper wire
->* Relay JQC3F (HW-482)
->* Pompa dell'acqua JT80SL
+> * Flying fish MH Sensor
+> * Soil Mosture Sensor
+> * Jumper wire
+> * Relay JQC3F (HW-482)
+> * Pompa dell'acqua JT80SL
 
 ### Installazione
 
