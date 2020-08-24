@@ -135,26 +135,20 @@
         { 
             delay(500); 
         }
-        
-        // Advance state
-        state++;
     }
 
     void loop() {
             switch(state){
-            case 1:
+            case 0:
                 // Init variables
-                if(!sendData){
-                    HTTPClient http;
-                }
                 humidityValue = 0;
-                int tempHumidity[6];
 
                 // Get humidity value
                 humidityValue = getHumidity();
 
                 // Start HTTP session and send data
                 if(!sendData){
+                    HTTPClient http;
                     http.begin(HOST);
                     http.addHeader("Content-Type", "application/x-www-form-urlencoded");
                     sendval = String(humidityValue);
@@ -171,33 +165,35 @@
                 // Check is moist is wet
                 safeCounter++;
                 if(humidityValue < wetSoil || safeCounter > 20){
-                    state = 3;
-                }else{
                     state = 2;
+                }else{
+                    state = 1;
                 }
                 break;
 
-            case 2:
+            case 1:
                 digitalWrite(releeController,HIGH);
                 sendData = false;
-                state = 1;
+                state = 0;
                 break;
 
-            case 3:
+            case 2:
                 digitalWrite(releeController,LOW);
                 ESP.deepSleep(waitTime * 1000000);
                 break;
         }
+        delay(200);
     }
 
-    public int getHumidity(){
-        public int tempHumidityValue = 0;
+    int getHumidity(){
+        int tempHumidityValue = 0;
+        int tempHumidity[6];
         for (int i = 0; i<5;i++){
             tempHumidity[i] = analogRead(humidityInputPin);
-            temphumidityValue += tempHumidity[i]; 
+            tempHumidityValue += tempHumidity[i]; 
             delay(200);
         }
-        temphumidityValue /=5;
+        tempHumidityValue /=5;
         return tempHumidityValue;
     }
 
